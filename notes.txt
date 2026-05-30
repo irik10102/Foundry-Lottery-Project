@@ -1,0 +1,15 @@
+Notes in order to write a function:-
+
+
+1.Checks
+2.Effects
+3.Interaction
+
+In checks we have to think about the cases, like if only the owner can access or not or the person calling this function meets certain criteria or not.
+
+In effects we change the internal state of the contracts.
+
+In interaction we make the transaction if there happen and emit events to let interaction done with frontend.
+
+
+We use this in order to sustain efficiency.
