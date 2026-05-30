@@ -14,8 +14,7 @@ contract DeployRaffle is Script {
     function run() external returns (Raffle, HelperConfig) {
         HelperConfig helperConfig = new HelperConfig();
 
-        HelperConfig.NetworkConfig memory activeChainConfig = helperConfig
-            .getConfig(block.chainid);
+        HelperConfig.NetworkConfig memory activeChainConfig = helperConfig.getConfig(block.chainid);
 
         vm.startBroadcast();
         Raffle raffle = new Raffle(

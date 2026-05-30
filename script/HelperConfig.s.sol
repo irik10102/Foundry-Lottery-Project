@@ -32,44 +32,38 @@ contract HelperConfig is Script {
     }
 
     function getSepoliaTestnet() internal pure returns (NetworkConfig memory) {
-        return
-            NetworkConfig({
-                ent_fees: 0.001 ether,
-                interval: 30,
-                vrfCoordinator: 0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B,
-                subscription_id: 0, //for now
-                keyHash: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
-                callbackGaslimit: 500000
-            });
+        return NetworkConfig({
+            ent_fees: 5 ether,
+            interval: 30,
+            vrfCoordinator: 0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B,
+            subscription_id: 0, //for now
+            keyHash: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
+            callbackGaslimit: 500000
+        });
     }
 
     function getAnvilTestnet() internal returns (NetworkConfig memory) {
         vm.startBroadcast();
-        VRFCoordinatorV2_5Mock vrfCoordinatorMock = new VRFCoordinatorV2_5Mock(
-            MOCK_BASE_FEE,
-            MOCK_GASE_PRICE_LINK,
-            MOCK_WEI_PER_UNIT_LINK
-        );
+        VRFCoordinatorV2_5Mock vrfCoordinatorMock =
+            new VRFCoordinatorV2_5Mock(MOCK_BASE_FEE, MOCK_GASE_PRICE_LINK, MOCK_WEI_PER_UNIT_LINK);
         vm.stopBroadcast();
 
-        return
-            NetworkConfig({
-                ent_fees: 0.001 ether,
-                interval: 30,
-                vrfCoordinator: address(vrfCoordinatorMock),
-                subscription_id: 0, //for now
-                //Doesnot require
-
-                keyHash: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
-                callbackGaslimit: 500000
-            });
+        return NetworkConfig({
+            ent_fees: 5 ether,
+            interval: 30,
+            vrfCoordinator: address(vrfCoordinatorMock),
+            subscription_id: 0, //for now
+            //Doesnot require
+            keyHash: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
+            callbackGaslimit: 500000
+        });
     }
 
-    function getConfig(
-        uint256 chainId
-    ) external view returns (NetworkConfig memory) {
-        if (networkConfigs[chainId].vrfCoordinator == address(0))
+    function getConfig(uint256 chainId) external view returns (NetworkConfig memory) {
+        if (networkConfigs[chainId].vrfCoordinator == address(0)) {
             revert HelperConfig_Chain_not_found();
-        else return networkConfigs[chainId];
+        } else {
+            return networkConfigs[chainId];
+        }
     }
 }
