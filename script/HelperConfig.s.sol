@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 import {Script} from "forge-std/Script.sol";
 import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
 import {LinkToken} from "test/mocks/LinkToken.sol";
+import {CreateSubscriptionContract} from "./Integration.s.sol";
+
 error HelperConfig_Chain_not_found();
 
 contract HelperConfig is Script {
@@ -49,13 +51,15 @@ contract HelperConfig is Script {
         VRFCoordinatorV2_5Mock vrfCoordinatorMock =
             new VRFCoordinatorV2_5Mock(MOCK_BASE_FEE, MOCK_GASE_PRICE_LINK, MOCK_WEI_PER_UNIT_LINK);
         LinkToken linkToken = new LinkToken();
+
+        uint256 subId = vrfCoordinatorMock.createSubscription();
         vm.stopBroadcast();
 
         return NetworkConfig({
             ent_fees: 5 ether,
             interval: 30,
             vrfCoordinator: address(vrfCoordinatorMock),
-            subscription_id: 0, //for now
+            subscription_id: subId, //for now
             //Doesnot require
             keyHash: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
             callbackGaslimit: 500000,

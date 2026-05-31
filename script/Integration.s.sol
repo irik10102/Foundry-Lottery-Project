@@ -11,14 +11,8 @@ import {DevOpsTools} from "lib/foundry-devops/src/DevOpsTools.sol";
 contract CreateSubscriptionContract is Script {
     HelperConfig internal helperConfig;
 
-  
-
-    function run() public {
-        makeSubscription();
-    }
-
-    function makeSubscription() public returns (uint256, address) {
-        helperConfig = new HelperConfig();
+    function makeSubscription(address _helperConfig) public returns (uint256, address) {
+        helperConfig = HelperConfig(_helperConfig);
         address vrfCoordinator = helperConfig.getConfig().vrfCoordinator;
 
         console.log("Creating Subscription ....");
@@ -39,14 +33,9 @@ contract FundSubscriptionContract is Script {
     uint256 internal subscription_id;
     uint32 internal constant ANVIL_LOCAL_CHAIN_ID = 31337;
 
-    
+    function fundSubscription(address _helperConfig) public {
+        helperConfig = HelperConfig(_helperConfig);
 
-    function run() public {
-        fundSubscription();
-    }
-
-    function fundSubscription() public {
-        helperConfig = new HelperConfig();
         HelperConfig.NetworkConfig memory netConfig = helperConfig.getConfig();
 
         vrfCoordinator = netConfig.vrfCoordinator;
@@ -60,34 +49,29 @@ contract FundSubscriptionContract is Script {
             vm.startBroadcast();
             VRFCoordinatorV2_5Mock(vrfCoordinator).fundSubscription(subscription_id, FUND_AMOUNT);
             vm.stopBroadcast();
-        }
-
-        else{
+        } else {
             vm.startBroadcast();
-                LinkToken(linkToken).transferAndCall(vrfCoordinator, 0.0001 ether, abi.encode(subscription_id));
+            LinkToken(linkToken).transferAndCall(vrfCoordinator, 0.0001 ether, abi.encode(subscription_id));
             vm.stopBroadcast();
         }
     }
 }
+
 /***
  * This contract adds the address of the consumer contract to subscription in order to use the Mock the VRF Coordinator services
- * 
+ *
  */
-contract AddConsumerContract is Script{
-    function run() external{
-        
-        
-        addConsumer();
-    }
+contract AddConsumerContract is Script {
+    HelperConfig helperConfig;
 
-    function addConsumer() public{
-        address consumerAddress = DevOpsTools.get_most_recent_deployment("Raffle", block.chainid);
-        HelperConfig helperConfig = new HelperConfig();
+    function addConsumer(address _helperConfig, address consumerAddress) public {
+        helperConfig = HelperConfig(_helperConfig);
+
         address vrfCoordinator = helperConfig.getConfig().vrfCoordinator;
         uint256 subId = helperConfig.getConfig().subscription_id;
 
         vm.startBroadcast();
-            VRFCoordinatorV2_5Mock(vrfCoordinator).addConsumer(subId, consumerAddress);
+        VRFCoordinatorV2_5Mock(vrfCoordinator).addConsumer(subId, consumerAddress);
         vm.stopBroadcast();
     }
 }

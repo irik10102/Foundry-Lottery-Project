@@ -17,15 +17,9 @@ contract DeployRaffle is Script {
 
         HelperConfig.NetworkConfig memory activeChainConfig = helperConfig.getConfig();
 
-        if (activeChainConfig.subscription_id == 0) {
-            /*Create Subscription*/
-            CreateSubscriptionContract subscriptionContract = new CreateSubscriptionContract();
-            (activeChainConfig.subscription_id, activeChainConfig.vrfCoordinator) =
-                subscriptionContract.makeSubscription();
-        }
         /*Fund Subscription*/
         FundSubscriptionContract fundSubscriptionContract = new FundSubscriptionContract();
-        fundSubscriptionContract.fundSubscription();
+        fundSubscriptionContract.fundSubscription(address(helperConfig));
 
         vm.startBroadcast();
         /*Our Raffle Contract is the consumer*/
@@ -38,11 +32,10 @@ contract DeployRaffle is Script {
             activeChainConfig.callbackGaslimit
         );
         vm.stopBroadcast();
-      
+
         /*Add Consumer*/
         AddConsumerContract addConsumerContract = new AddConsumerContract();
-        addConsumerContract.addConsumer();
-
+        addConsumerContract.addConsumer(address(raffle), address(helperConfig));
 
         return (raffle, helperConfig);
     }
