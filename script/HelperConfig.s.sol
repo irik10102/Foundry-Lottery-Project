@@ -34,7 +34,7 @@ contract HelperConfig is Script {
 
     function getSepoliaTestnet() internal pure returns (NetworkConfig memory) {
         return NetworkConfig({
-            ent_fees: 0.0001 ether,
+            ent_fees: 0.000001 ether,
             interval: 30,
             vrfCoordinator: 0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B,
             subscription_id: 59490573993633328272917746973052082465255066811621324857065457168831401016251,

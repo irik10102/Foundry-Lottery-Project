@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import {Script} from "forge-std/Script.sol";
 import {Raffle} from "../src/Raffle.sol";
 import {HelperConfig} from "./HelperConfig.s.sol";
-import {CreateSubscriptionContract} from "./Integration.s.sol";
+import {CreateSubscriptionContract, FundSubscriptionContract, AddConsumerContract} from "./Integration.s.sol";
 
 /**
  * @title Deployment of Raffle contract such that upon detecting the chainId it will be automatically deploy into Sepolia or Local testnet(Anvil).
@@ -19,11 +19,16 @@ contract DeployRaffle is Script {
 
         if (activeChainConfig.subscription_id == 0) {
             /*Create Subscription*/
-            CreateSubscriptionContract subscriptionContract = new CreateSubscriptionContract(address(helperConfig));
-            (activeChainConfig.subscription_id, activeChainConfig.vrfCoordinator) = subscriptionContract.run();
+            CreateSubscriptionContract subscriptionContract = new CreateSubscriptionContract();
+            (activeChainConfig.subscription_id, activeChainConfig.vrfCoordinator) =
+                subscriptionContract.makeSubscription();
         }
+        /*Fund Subscription*/
+        FundSubscriptionContract fundSubscriptionContract = new FundSubscriptionContract();
+        fundSubscriptionContract.fundSubscription();
 
         vm.startBroadcast();
+        /*Our Raffle Contract is the consumer*/
         Raffle raffle = new Raffle(
             activeChainConfig.ent_fees,
             activeChainConfig.interval,
@@ -33,6 +38,11 @@ contract DeployRaffle is Script {
             activeChainConfig.callbackGaslimit
         );
         vm.stopBroadcast();
+      
+        /*Add Consumer*/
+        AddConsumerContract addConsumerContract = new AddConsumerContract();
+        addConsumerContract.addConsumer();
+
 
         return (raffle, helperConfig);
     }
