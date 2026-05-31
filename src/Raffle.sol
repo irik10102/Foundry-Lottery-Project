@@ -20,9 +20,10 @@ enum RaffleState {
 
 contract Raffle is VRFConsumerBaseV2Plus {
     /*Errors*/
-    error  Raffle_NotSufficientETH();
-    error  Raffle_WinnerTransferNotDone();
-    error  Raffle_UpkeepNotYet(RaffleState raffleState, uint256 balance, uint256 s_players_length);
+    error Raffle_NotSufficientETH();
+    error Raffle_WinnerTransferNotDone();
+    error Raffle_UpkeepNotYet(RaffleState raffleState, uint256 balance, uint256 s_players_length);
+    error Raffle_StateNotOpen();
     /*Events*/
     event EnteredRaffle(address indexed player);
     event PickedWinner(address indexed player);
@@ -34,7 +35,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
     RaffleState private s_raffle_state;
 
     /*ChainLink VRF state-variables*/
-    uint64 private immutable i_subscriptionId;
+    uint256 private immutable i_subscriptionId;
     bytes32 private immutable i_keyHash;
     uint16 constant REQUEST_CONFIMATION = 3;
     uint32 immutable i_callbackGaslimit;
@@ -44,7 +45,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
         uint256 ent_fees,
         uint256 interval,
         address vrfCoordinator,
-        uint64 subscription_id,
+        uint256 subscription_id,
         bytes32 keyHash,
         uint32 callbackGaslimit
     ) VRFConsumerBaseV2Plus(vrfCoordinator) {
@@ -146,17 +147,17 @@ contract Raffle is VRFConsumerBaseV2Plus {
         return s_raffle_state;
     }
 
-    function getRafflePlayers(uint256 index) external view returns(address){
+    function getRafflePlayers(uint256 index) external view returns (address) {
         return s_players[index];
     }
 
-    function getRafflePlayersLength() external view returns(uint256){
+    function getRafflePlayersLength() external view returns (uint256) {
         return s_players.length;
     }
 
     modifier openState() {
         if (s_raffle_state != RaffleState.OPEN) {
-            revert();
+            revert Raffle_StateNotOpen();
         }
 
         _;

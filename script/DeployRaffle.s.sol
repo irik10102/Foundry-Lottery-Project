@@ -5,6 +5,7 @@ pragma solidity ^0.8.0;
 import {Script} from "forge-std/Script.sol";
 import {Raffle} from "../src/Raffle.sol";
 import {HelperConfig} from "./HelperConfig.s.sol";
+import {CreateSubscriptionContract} from "./Integration.s.sol";
 
 /**
  * @title Deployment of Raffle contract such that upon detecting the chainId it will be automatically deploy into Sepolia or Local testnet(Anvil).
@@ -14,7 +15,13 @@ contract DeployRaffle is Script {
     function run() external returns (Raffle, HelperConfig) {
         HelperConfig helperConfig = new HelperConfig();
 
-        HelperConfig.NetworkConfig memory activeChainConfig = helperConfig.getConfig(block.chainid);
+        HelperConfig.NetworkConfig memory activeChainConfig = helperConfig.getConfig();
+
+        if (activeChainConfig.subscription_id == 0) {
+            /*Create Subscription*/
+            CreateSubscriptionContract subscriptionContract = new CreateSubscriptionContract(address(helperConfig));
+            (activeChainConfig.subscription_id, activeChainConfig.vrfCoordinator) = subscriptionContract.run();
+        }
 
         vm.startBroadcast();
         Raffle raffle = new Raffle(

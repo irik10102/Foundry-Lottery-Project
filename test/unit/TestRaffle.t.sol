@@ -9,6 +9,9 @@ import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {Raffle} from "../../src/Raffle.sol";
 
 contract TestRaffle is Test {
+    //Events
+    event EnteredRaffle(address indexed player);
+
     DeployRaffle private deployRaffle;
     Raffle private raffle;
     HelperConfig private helperConfig;
@@ -18,19 +21,25 @@ contract TestRaffle is Test {
 
     uint256 private constant STARTING_DUMMY_PLAYER_BALANCE = 100 ether;
     uint256 private constant ENT_FEES = 5 ether;
+    uint256 ent_fees;
+    uint256 interval;
+    address vrfCoordinator;
+    uint256 subscription_id;
+    bytes32 keyHash;
+    uint32 callbackGaslimit;
 
     function setUp() external {
         deployRaffle = new DeployRaffle();
         (raffle, helperConfig) = deployRaffle.run();
 
-        HelperConfig.NetworkConfig memory networkConfig = helperConfig.getConfig(block.chainid);
+        HelperConfig.NetworkConfig memory networkConfig = helperConfig.getConfig();
 
-        uint256 ent_fees = networkConfig.ent_fees;
-        uint256 interval = networkConfig.interval;
-        address vrfCoordinator = networkConfig.vrfCoordinator;
-        uint64 subscription_id = networkConfig.subscription_id;
-        bytes32 keyHash = networkConfig.keyHash;
-        uint32 callbackGaslimit = networkConfig.callbackGaslimit;
+        ent_fees = networkConfig.ent_fees;
+        interval = networkConfig.interval;
+        vrfCoordinator = networkConfig.vrfCoordinator;
+        subscription_id = networkConfig.subscription_id;
+        keyHash = networkConfig.keyHash;
+        callbackGaslimit = networkConfig.callbackGaslimit;
 
         vm.deal(DUMMY_PLAYER1, STARTING_DUMMY_PLAYER_BALANCE);
         vm.deal(DUMMY_PLAYER2, STARTING_DUMMY_PLAYER_BALANCE);
@@ -52,32 +61,63 @@ contract TestRaffle is Test {
         vm.stopPrank();
     }
 
-    function testRegisterWithFees() external{
-
+    function testRegisterWithFees() external {
         //ARRANGE
         vm.startPrank(DUMMY_PLAYER1);
-        
 
         //ACT
-        raffle.enterRaffle{value:6 ether}();
+        raffle.enterRaffle{value: 6 ether}();
 
         //ASSERT
         assertEq(raffle.getRafflePlayers(0), DUMMY_PLAYER1);
     }
 
-    function testRegisterMultiplePlayers() external{
-
-        for(uint160 i = 1; i<=10; i++){
-        //ARRANGE
+    function testRegisterMultiplePlayers() external {
+        for (uint160 i = 1; i <= 10; i++) {
+            //ARRANGE
             hoax(address(i), STARTING_DUMMY_PLAYER_BALANCE);
 
-        //ACT
-            raffle.enterRaffle{value:10 ether}();
+            //ACT
+            raffle.enterRaffle{value: 10 ether}();
         }
 
         //ASSERT
         assert(raffle.getRafflePlayersLength() == 10);
-        assert(address(raffle).balance == 10*(10 ether));                        //Total amount  till now
+        assert(address(raffle).balance == 10 * (10 ether)); //Total amount  till now
+    }
 
+    function testEventEnterRaffle() external {
+        //Arrange
+        vm.prank(DUMMY_PLAYER1);
+
+        //Act & Assert
+        vm.expectEmit(true, false, false, false, address(raffle));
+        emit EnteredRaffle(DUMMY_PLAYER1);
+        raffle.enterRaffle{value: 10 ether}();
+    }
+
+    function testEnterRaffleWhileStateNotOpen() external {
+        //Arrange
+
+        //Condition for more than 2 players and balance greater than 0 has been fullfiled
+        vm.prank(DUMMY_PLAYER1);
+        raffle.enterRaffle{value: 10 ether}();
+
+        vm.prank(DUMMY_PLAYER2);
+        raffle.enterRaffle{value: 10 ether}();
+
+        //Condtion for time greater than interval has been satisfied & the condition to be in state OPEN is also satisfied
+        vm.warp(block.timestamp + interval + 1);
+
+        //Act
+
+        //The state has been changed
+        raffle.performUpkeep();
+
+        //Assert
+        hoax(address(uint160(7890)), 10 ether);
+        vm.expectRevert(Raffle.Raffle_StateNotOpen.selector);
+
+        raffle.enterRaffle{value: 9 ether}();
     }
 }
