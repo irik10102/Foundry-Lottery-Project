@@ -64,11 +64,11 @@ contract FundSubscriptionContract is Script {
 contract AddConsumerContract is Script {
     HelperConfig helperConfig;
 
-    function addConsumer(address _helperConfig, address consumerAddress) public {
+    function addConsumer(address _helperConfig, address consumerAddress, uint256 subId) public {
         helperConfig = HelperConfig(_helperConfig);
 
         address vrfCoordinator = helperConfig.getConfig().vrfCoordinator;
-        uint256 subId = helperConfig.getConfig().subscription_id;
+
 
         vm.startBroadcast();
         VRFCoordinatorV2_5Mock(vrfCoordinator).addConsumer(subId, consumerAddress);

@@ -35,7 +35,7 @@ contract DeployRaffle is Script {
 
         /*Add Consumer*/
         AddConsumerContract addConsumerContract = new AddConsumerContract();
-        addConsumerContract.addConsumer(address(raffle), address(helperConfig));
+        addConsumerContract.addConsumer( address(helperConfig),address(raffle), activeChainConfig.subscription_id);
 
         return (raffle, helperConfig);
     }
