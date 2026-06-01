@@ -7,6 +7,9 @@ import {Test} from "forge-std/Test.sol";
 import {DeployRaffle} from "../../script/DeployRaffle.s.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {Raffle} from "../../src/Raffle.sol";
+import {Vm} from 'forge-std/Vm.sol';
+
+
 
 contract TestRaffle is Test {
     //Events
@@ -95,19 +98,20 @@ contract TestRaffle is Test {
         emit EnteredRaffle(DUMMY_PLAYER1);
         raffle.enterRaffle{value: 10 ether}();
     }
+    //CheckUpkeep
 
-    function testEnterRaffleWhileStateNotOpen() external {
+    function testEnterRaffleWhileStateNotOpen() external allConditionTrueForCheckUpkeep{
         //Arrange
 
         //Condition for more than 2 players and balance greater than 0 has been fullfiled
-        vm.prank(DUMMY_PLAYER1);
+       /* vm.prank(DUMMY_PLAYER1);
         raffle.enterRaffle{value: 10 ether}();
 
         vm.prank(DUMMY_PLAYER2);
         raffle.enterRaffle{value: 10 ether}();
 
         //Condtion for time greater than interval has been satisfied & the condition to be in state OPEN is also satisfied
-        vm.warp(block.timestamp + interval + 1);
+        vm.warp(block.timestamp + interval + 1);*/
 
         //Act
 
@@ -119,5 +123,83 @@ contract TestRaffle is Test {
         vm.expectRevert(Raffle.Raffle_StateNotOpen.selector);
 
         raffle.enterRaffle{value: 9 ether}();
+    }
+
+    function testEnterRaffleWith1Player() external {
+        vm.prank(DUMMY_PLAYER1); //Only 1 player entered in Raffle
+        // State is OPEN
+        vm.warp(block.timestamp + interval + 1); //Time Passed Interval
+        raffle.enterRaffle{value: 10 ether}(); // balance > 0
+
+        vm.expectRevert();
+        raffle.performUpkeep();
+    }
+
+    function testCheckUpkeepReturnsFalseIfTimeHasNotPassed() external allConditionTrueForCheckUpkeep{
+        //More than 1 player , Balance is greater than 0 ETH , State is Open as PerformUpkeep is not called yet.
+
+        
+
+        //ACT
+        (bool success,) = raffle.checkUpkeep("");
+
+        //ASSERT
+        assert(success == false);
+    }
+
+    function testCheckUpkeepReturnsTrueWhenParametersAreGood() external allConditionTrueForCheckUpkeep{
+        //More than 1 player , Balance is greater than 0 ETH , State is Open as PerformUpkeep is not called yet.
+
+        
+        //ACT
+        (bool success,) = raffle.checkUpkeep("");
+
+        //ASSERT
+        assert(success == true);
+    }
+
+    //PerformUpKeep
+
+    function testPerformUpkeepRevertFailsCheckupkeepFalse() external {
+        //Arrange
+        //Performing no condition in order to checkUpKeep to be True
+        Raffle.RaffleState rstate = raffle.getRaffleState();
+
+        uint256 no_of_players = raffle.getRafflePlayersLength();
+
+        uint256 balance = address(raffle).balance;
+        vm.warp(block.timestamp + interval + 1);
+
+        //ACT/assert
+       
+
+        vm.expectRevert(abi.encodeWithSelector(Raffle.Raffle_UpkeepNotYet.selector, rstate, balance, no_of_players));
+        raffle.performUpkeep();
+    }
+
+    function testPerformUpkeepUpdatesStateAndEmitsRequestId() external allConditionTrueForCheckUpkeep{
+        //Arrange
+        vm.recordLogs();
+        raffle.performUpkeep();
+
+        //Act
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+
+        //Assert
+        assert(uint256(entries[1].topics[1]) == raffle.getRequestId() );
+
+    }
+
+    modifier allConditionTrueForCheckUpkeep(){
+         vm.prank(DUMMY_PLAYER1);
+        raffle.enterRaffle{value: 10 ether}();
+
+        vm.prank(DUMMY_PLAYER2);
+        raffle.enterRaffle{value: 10 ether}();
+
+        vm.warp(block.timestamp + interval + 1);
+        vm.roll(block.number + 1);
+
+        _;
     }
 }

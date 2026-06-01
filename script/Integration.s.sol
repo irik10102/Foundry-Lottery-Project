@@ -69,7 +69,6 @@ contract AddConsumerContract is Script {
 
         address vrfCoordinator = helperConfig.getConfig().vrfCoordinator;
 
-
         vm.startBroadcast();
         VRFCoordinatorV2_5Mock(vrfCoordinator).addConsumer(subId, consumerAddress);
         vm.stopBroadcast();

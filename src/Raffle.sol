@@ -5,12 +5,6 @@ pragma solidity ^0.8.0;
 import {VRFConsumerBaseV2Plus} from "@chainlink/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
 import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
 
-/*Type declaration*/
-enum RaffleState {
-    OPEN,
-    CALCULATING
-}
-
 /**
  * @title Raffle Smart Contract
  * @author Sahil Ghosh
@@ -19,6 +13,12 @@ enum RaffleState {
  */
 
 contract Raffle is VRFConsumerBaseV2Plus {
+    /*Type declaration*/
+    enum RaffleState {
+        OPEN,
+        CALCULATING
+    }
+
     /*Errors*/
     error Raffle_NotSufficientETH();
     error Raffle_WinnerTransferNotDone();
@@ -27,12 +27,15 @@ contract Raffle is VRFConsumerBaseV2Plus {
     /*Events*/
     event EnteredRaffle(address indexed player);
     event PickedWinner(address indexed player);
+    event RequestIDReceived(uint256 indexed requestId);
 
     uint256 private immutable i_entranceFees;
     address payable[] private s_players;
     uint256 private immutable i_interval;
     uint256 private s_lastBlockStamp;
     RaffleState private s_raffle_state;
+    uint256 private s_requestId=0;
+
 
     /*ChainLink VRF state-variables*/
     uint256 private immutable i_subscriptionId;
@@ -106,7 +109,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
 
         s_raffle_state = RaffleState.CALCULATING;
 
-        uint256 requestId = s_vrfCoordinator.requestRandomWords(
+        s_requestId = s_vrfCoordinator.requestRandomWords(
             VRFV2PlusClient.RandomWordsRequest({
                 keyHash: i_keyHash,
                 subId: i_subscriptionId,
@@ -119,6 +122,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
                 )
             })
         );
+        emit RequestIDReceived(s_requestId);
     }
 
     function fulfillRandomWords(uint256 requestId, uint256[] calldata randomWords) internal override {
@@ -153,6 +157,10 @@ contract Raffle is VRFConsumerBaseV2Plus {
 
     function getRafflePlayersLength() external view returns (uint256) {
         return s_players.length;
+    }
+    
+    function getRequestId() external view returns(uint256){
+        return s_requestId;
     }
 
     modifier openState() {
