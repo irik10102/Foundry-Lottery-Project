@@ -27,7 +27,7 @@ contract HelperConfig is Script {
     /*VRF MOCK VARIABLES*/
     uint96 private constant MOCK_BASE_FEE = 0.001 ether;
     uint32 private constant MOCK_GASE_PRICE_LINK = 4e5;
-    int96 private constant MOCK_WEI_PER_UNIT_LINK = 0.0001 ether;
+    int256 private constant MOCK_WEI_PER_UNIT_LINK = 1000 ether;
 
     constructor() {
         networkConfigs[SEPOLIA_ETH_CHAIN_ID] = getSepoliaTestnet();
@@ -62,7 +62,7 @@ contract HelperConfig is Script {
             subscription_id: subId, //for now
             //Doesnot require
             keyHash: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
-            callbackGaslimit: 500000,
+            callbackGaslimit: 4294967295,
             link: address(linkToken)
         });
     }

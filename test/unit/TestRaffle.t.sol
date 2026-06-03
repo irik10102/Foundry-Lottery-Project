@@ -8,6 +8,7 @@ import {DeployRaffle} from "../../script/DeployRaffle.s.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {Raffle} from "../../src/Raffle.sol";
 import {Vm} from 'forge-std/Vm.sol';
+import {VRFCoordinatorV2_5Mock} from '@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol';
 
 
 
@@ -24,6 +25,7 @@ contract TestRaffle is Test {
 
     uint256 private constant STARTING_DUMMY_PLAYER_BALANCE = 100 ether;
     uint256 private constant ENT_FEES = 5 ether;
+    uint256 private constant RAFFLE_FUND_AMOUNT = 10 ether;
     uint256 ent_fees;
     uint256 interval;
     address vrfCoordinator;
@@ -135,7 +137,7 @@ contract TestRaffle is Test {
         raffle.performUpkeep();
     }
 
-    function testCheckUpkeepReturnsFalseIfTimeHasNotPassed() external allConditionTrueForCheckUpkeep{
+    function testCheckUpkeepReturnsFalseIfTimeHasNotPassed() external{
         //More than 1 player , Balance is greater than 0 ETH , State is Open as PerformUpkeep is not called yet.
 
         
@@ -189,16 +191,60 @@ contract TestRaffle is Test {
         assert(uint256(entries[1].topics[1]) == raffle.getRequestId() );
 
     }
+    // FullFill random words
+
+    function testIfFullFillRandomWordsCanGetOutputWithoutPerformUpkeep(uint256 requestId) external allConditionTrueForCheckUpkeep{ //Because performUpkeep gets requestId and fullfillRandomWords use it.
+        vm.expectRevert(VRFCoordinatorV2_5Mock.InvalidRequest.selector);
+        VRFCoordinatorV2_5Mock(vrfCoordinator).fulfillRandomWords(requestId, address(raffle));
+    }
+
+    function testFullfillRandomWordsCanOnlyBeCalledAfterPerformUpkeep() external allConditionTrueForCheckUpkeep{
+        //ARRANGE
+        for(uint160 addr_i = 3; addr_i < 10; addr_i++)
+        {
+            hoax(address(addr_i), STARTING_DUMMY_PLAYER_BALANCE);
+            raffle.enterRaffle{value:RAFFLE_FUND_AMOUNT}();
+
+        }
+
+        uint256 raffleBalanceBeforePickingWinner = address(raffle).balance;
+        uint256 totalPlayers = raffle.getRafflePlayersLength();
+        uint256 expectedDonationAmount = totalPlayers*RAFFLE_FUND_AMOUNT;
+
+
+        vm.recordLogs();
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+
+
+        //ACT
+
+        //Starting Index for our event 1(RequestId)
+        raffle.performUpkeep();
+
+        //Here we are pretending to be a Chainlink Node
+        VRFCoordinatorV2_5Mock(vrfCoordinator).fulfillRandomWords(raffle.getRequestId(), address(raffle));
+
+        //ASSERT
+        uint256 winnerBalance = address(raffle.getRecentWinner()).balance;
+
+
+        assert(Raffle.RaffleState.OPEN == raffle.getRaffleState());
+        assert(winnerBalance == (STARTING_DUMMY_PLAYER_BALANCE-RAFFLE_FUND_AMOUNT + expectedDonationAmount));
+        assert(raffleBalanceBeforePickingWinner == expectedDonationAmount);
+    }
 
     modifier allConditionTrueForCheckUpkeep(){
-         vm.prank(DUMMY_PLAYER1);
-        raffle.enterRaffle{value: 10 ether}();
+        
+
+        vm.prank(DUMMY_PLAYER1);
+        raffle.enterRaffle{value: RAFFLE_FUND_AMOUNT}();
 
         vm.prank(DUMMY_PLAYER2);
-        raffle.enterRaffle{value: 10 ether}();
+        raffle.enterRaffle{value: RAFFLE_FUND_AMOUNT}();
 
         vm.warp(block.timestamp + interval + 1);
         vm.roll(block.number + 1);
+        
 
         _;
     }

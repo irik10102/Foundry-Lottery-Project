@@ -35,12 +35,13 @@ contract Raffle is VRFConsumerBaseV2Plus {
     uint256 private s_lastBlockStamp;
     RaffleState private s_raffle_state;
     uint256 private s_requestId=0;
+    address private s_recent_winner;
 
 
     /*ChainLink VRF state-variables*/
     uint256 private immutable i_subscriptionId;
     bytes32 private immutable i_keyHash;
-    uint16 constant REQUEST_CONFIMATION = 3;
+    uint16 constant REQUEST_CONFIRMATIONS=2;
     uint32 immutable i_callbackGaslimit;
     uint32 constant NUM_WORDS = 1;
 
@@ -113,7 +114,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
             VRFV2PlusClient.RandomWordsRequest({
                 keyHash: i_keyHash,
                 subId: i_subscriptionId,
-                requestConfirmations: REQUEST_CONFIMATION,
+                requestConfirmations: REQUEST_CONFIRMATIONS,
                 callbackGasLimit: i_callbackGaslimit,
                 numWords: NUM_WORDS,
                 extraArgs: VRFV2PlusClient._argsToBytes(
@@ -128,17 +129,17 @@ contract Raffle is VRFConsumerBaseV2Plus {
     function fulfillRandomWords(uint256 requestId, uint256[] calldata randomWords) internal override {
         uint256 randomNumber = randomWords[0];
         uint256 winnerIndex = randomNumber % s_players.length;
-        address winnerAddress = s_players[winnerIndex];
+        s_recent_winner = s_players[winnerIndex];
 
         s_raffle_state = RaffleState.OPEN;
 
-        (bool success,) = winnerAddress.call{value: address(this).balance}("");
+        (bool success,) = s_recent_winner.call{value: address(this).balance}("");
         if (!success) {
             revert Raffle_WinnerTransferNotDone();
         }
 
         s_players = new address payable[](0);
-        emit PickedWinner(winnerAddress);
+        emit PickedWinner(s_recent_winner);
     }
 
     /* Getter Functions*/
@@ -161,6 +162,10 @@ contract Raffle is VRFConsumerBaseV2Plus {
     
     function getRequestId() external view returns(uint256){
         return s_requestId;
+    }
+
+    function getRecentWinner() external view returns(address){
+        return s_recent_winner;
     }
 
     modifier openState() {
