@@ -1,4 +1,4 @@
-###Decentralized Lottery Smart Contract (Foundry)
+Decentralized Lottery Smart Contract (Foundry)
 
 Developed a decentralized lottery application as part of the Cyfrin Updraft smart contract development curriculum using Solidity and Foundry. The project implements a secure and automated lottery system where participants can enter by paying an entrance fee, and a winner is selected randomly through Chainlink VRF (Verifiable Random Function). The lottery execution and winner selection process are automated using Chainlink Automation, eliminating the need for manual intervention.
 
